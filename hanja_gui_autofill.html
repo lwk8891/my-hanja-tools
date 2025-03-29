@@ -1,0 +1,173 @@
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>한자 파생 구조 입력기 (자동 채움)</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    textarea, input, select { width: 100%; margin: 5px 0 15px; }
+    label { font-weight: bold; display: block; margin-top: 15px; }
+    #output { white-space: pre; background: #f0f0f0; padding: 10px; border: 1px solid #ccc; }
+    button { padding: 8px 20px; margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <h1>한자 파생 구조 입력기 (자동 채움)</h1>
+
+  <label>한자 코드 (예: 寅)</label>
+  <input type="text" id="key" onblur="autofillFromEumun()" />
+
+  <label>표시용 표기 (브런치용)</label>
+  <input type="text" id="display" />
+
+  <label>뜻</label>
+  <input type="text" id="meaning" />
+
+  <label>훈음</label>
+  <input type="text" id="labelText" />
+
+  <label>추가 훈음</label>
+  <input type="text" id="extraLabels" />
+
+  <label>예시</label>
+  <input type="text" id="examples" />
+
+  <label>비고</label>
+  <input type="text" id="note" />
+
+  <label>급수</label>
+  <select id="level">
+    <option value="">(선택)</option>
+    <option>어문회 8급</option>
+    <option>어문회 준7급</option>
+    <option>어문회 7급</option>
+    <option>어문회 준6급</option>
+    <option>어문회 6급</option>
+    <option>어문회 준5급</option>
+    <option>어문회 5급</option>
+    <option>어문회 준4급</option>
+    <option>어문회 4급</option>
+    <option>어문회 준3급</option>
+    <option>어문회 3급</option>
+    <option>어문회 2급</option>
+    <option>어문회 1급</option>
+    <option>어문회 준특급</option>
+    <option>어문회 특급</option>
+    <option>급수 외</option>
+  </select>
+
+  <label>부수</label>
+  <input type="text" id="radical" />
+
+  <label>구성요소 (쉼표로 구분)</label>
+  <input type="text" id="components" />
+
+  <label>파생된 상위 한자 (선택 또는 수동입력)</label>
+  <select id="parentSelect">
+    <option value="">(선택)</option>
+  </select>
+  <input type="text" id="parentManual" placeholder="또는 수동 입력 (예: 寅)" />
+
+  <button onclick="addEntry()">추가</button>
+  <button onclick="downloadJSON()">JSON 저장</button>
+
+  <h2>현재 데이터</h2>
+  <div id="output">{}</div>
+
+  <script>
+    const data = {};
+    const eumunData = {};
+
+    function autofillFromEumun() {
+      const key = document.getElementById("key").value.trim();
+      const info = eumunData[key];
+      if (info) {
+        document.getElementById("meaning").value = info.meaning;
+        document.getElementById("labelText").value = info.label;
+        document.getElementById("extraLabels").value = (info.extra_labels || []).join(" | ");
+        document.getElementById("radical").value = info.radical;
+        document.getElementById("level").value = info.level;
+      }
+    }
+
+    function addEntry() {
+      const key = document.getElementById("key").value.trim();
+      if (!key) return alert("한자 코드는 필수입니다.");
+
+      const entry = {
+        display: document.getElementById("display").value.trim() || key,
+        meaning: document.getElementById("meaning").value.trim(),
+        label: document.getElementById("labelText").value.trim(),
+        extra_labels: document.getElementById("extraLabels").value.split("|").map(x => x.trim()).filter(Boolean),
+        examples: document.getElementById("examples").value.trim(),
+        note: document.getElementById("note").value.trim(),
+        level: document.getElementById("level").value,
+        radical: document.getElementById("radical").value.trim(),
+        components: document.getElementById("components").value.split(",").map(x => x.trim()).filter(Boolean),
+        children: data[key]?.children || []
+      };
+
+      data[key] = entry;
+
+      const parentSelect = document.getElementById("parentSelect").value.trim();
+      const parentManual = document.getElementById("parentManual").value.trim();
+      const parentKey = parentManual || parentSelect;
+
+      if (parentKey) {
+        if (!data[parentKey]) {
+          data[parentKey] = {
+            display: parentKey,
+            meaning: "",
+            label: "",
+            examples: "",
+            note: "",
+            level: "",
+            radical: "",
+            components: [],
+            extra_labels: [],
+            children: []
+          };
+        }
+        if (!data[parentKey].children.includes(key)) {
+          data[parentKey].children.push(key);
+        }
+      }
+
+      updateParentSelect();
+      document.getElementById("output").textContent = JSON.stringify(data, null, 2);
+    }
+
+    function updateParentSelect() {
+      const select = document.getElementById("parentSelect");
+      const current = select.value;
+      select.innerHTML = '<option value="">(선택)</option>';
+      Object.keys(data).forEach(k => {
+        const option = document.createElement("option");
+        option.value = k;
+        option.textContent = k;
+        select.appendChild(option);
+      });
+      select.value = current;
+    }
+
+    function downloadJSON() {
+      const blob = new Blob([JSON.stringify(data, null, 2)], {type: "application/json"});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "hanja_data.json";
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+  </script>
+
+  <script>
+    fetch("eumun_hanja_data_fixed.json")
+      .then(res => res.json())
+      .then(json => {
+        Object.assign(eumunData, json);
+      });
+  </script>
+</body>
+</html>
