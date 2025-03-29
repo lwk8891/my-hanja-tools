@@ -1,0 +1,129 @@
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>한자 데이터 입력 도구</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; }
+        label, input, textarea, select { display: block; margin: 10px 0; width: 100%; }
+        textarea { height: 100px; }
+        .button-group button { margin-right: 10px; }
+        .external-links { margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <h1>한자 데이터 입력</h1>
+
+    <label>한자</label>
+    <input type="text" id="char" placeholder="예: 酒" />
+
+    <label>구성 요소</label>
+    <input type="text" id="components" placeholder="예: 酉+水(물 수)" />
+
+    <label>훈음</label>
+    <input type="text" id="hun" placeholder="예: 술" />
+    <input type="text" id="eum" placeholder="예: 주" />
+
+    <label>용례</label>
+    <textarea id="examples" placeholder="예: 주당(酒黨), 소주(燒酒) 등"></textarea>
+
+    <label>어문회 급수</label>
+    <select id="level">
+        <option value="">없음</option>
+        <option value="8급">8급</option>
+        <option value="준7급">준7급</option>
+        <option value="7급">7급</option>
+        <option value="준6급">준6급</option>
+        <option value="6급">6급</option>
+        <option value="준5급">준5급</option>
+        <option value="5급">5급</option>
+        <option value="준4급">준4급</option>
+        <option value="4급">4급</option>
+        <option value="준3급">준3급</option>
+        <option value="3급">3급</option>
+        <option value="2급">2급</option>
+        <option value="1급">1급</option>
+        <option value="준특급">준특급</option>
+        <option value="특급">특급</option>
+        <option value="인명용 한자">인명용 한자</option>
+        <option value="급수 외">급수 외</option>
+    </select>
+
+    <div class="button-group">
+        <button onclick="addEntry()">데이터 추가</button>
+        <button onclick="downloadJSON()">JSON 저장</button>
+        <input type="file" id="fileInput" accept=".json" onchange="loadJSON(event)" />
+    </div>
+
+    <div class="external-links">
+        <strong>외부 링크:</strong><br />
+        <button onclick="openXiaoxue()">小學堂 자형 검색</button>
+        <button onclick="openWiktionary()">Wiktionary</button>
+        <button onclick="openCText()">CText 사전</button>
+    </div>
+
+    <h2>현재 데이터</h2>
+    <pre id="output"></pre>
+
+    <script>
+        const hanjaData = {};
+
+        function addEntry() {
+            const char = document.getElementById("char").value.trim();
+            if (!char) return alert("한자를 입력하세요.");
+
+            hanjaData[char] = {
+                components: document.getElementById("components").value.trim().split("+"),
+                hun: document.getElementById("hun").value.trim(),
+                eum: document.getElementById("eum").value.trim(),
+                examples: document.getElementById("examples").value.trim(),
+                level: document.getElementById("level").value.trim()
+            };
+
+            updateOutput();
+        }
+
+        function updateOutput() {
+            document.getElementById("output").textContent = JSON.stringify(hanjaData, null, 2);
+        }
+
+        function downloadJSON() {
+            const blob = new Blob([JSON.stringify(hanjaData, null, 2)], { type: "application/json" });
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(blob);
+            a.download = "hanja_data.json";
+            a.click();
+        }
+
+        function loadJSON(event) {
+            const file = event.target.files[0];
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                Object.assign(hanjaData, JSON.parse(e.target.result));
+                updateOutput();
+            };
+            reader.readAsText(file);
+        }
+
+        function getCurrentChar() {
+            return encodeURIComponent(document.getElementById("char").value.trim());
+        }
+
+        function openXiaoxue() {
+            const url = "https://xiaoxue.iis.sinica.edu.tw/?char=" + getCurrentChar();
+            window.open(url, "_blank");
+        }
+
+        function openWiktionary() {
+            const url = "https://en.wiktionary.org/wiki/" + getCurrentChar();
+            window.open(url, "_blank");
+        }
+
+        function openCText() {
+            const url = "https://ctext.org/dictionary.pl?if=en&char=" + getCurrentChar();
+            window.open(url, "_blank");
+        }
+    </script>
+</body>
+</html>
