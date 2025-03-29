@@ -3,7 +3,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <title>한자 파생 구조 입력기 (자동 채움)</title>
+  <title>한자 파생 구조 입력기 (자동 채움 + 불러오기)</title>
   <style>
     body { font-family: sans-serif; padding: 20px; }
     textarea, input, select { width: 100%; margin: 5px 0 15px; }
@@ -13,7 +13,7 @@
   </style>
 </head>
 <body>
-  <h1>한자 파생 구조 입력기 (자동 채움)</h1>
+  <h1>한자 파생 구조 입력기 (자동 채움 + JSON 불러오기)</h1>
 
   <label>한자 코드 (예: 寅)</label>
   <input type="text" id="key" onblur="autofillFromEumun()" />
@@ -71,6 +71,9 @@
 
   <button onclick="addEntry()">추가</button>
   <button onclick="downloadJSON()">JSON 저장</button>
+  <button onclick="triggerImport()">JSON 불러오기</button>
+
+  <input type="file" id="jsonFileInput" style="display:none" accept=".json" />
 
   <h2>현재 데이터</h2>
   <div id="output">{}</div>
@@ -110,9 +113,9 @@
 
       data[key] = entry;
 
-      const parentSelect = document.getElementById("parentSelect").value.trim();
+      const parentSelect = document.getElementById("parentSelect");
       const parentManual = document.getElementById("parentManual").value.trim();
-      const parentKey = parentManual || parentSelect;
+      const parentKey = parentManual || parentSelect.value;
 
       if (parentKey) {
         if (!data[parentKey]) {
@@ -160,9 +163,34 @@
       a.click();
       URL.revokeObjectURL(url);
     }
-  </script>
 
-  <script>
+    function triggerImport() {
+      document.getElementById("jsonFileInput").click();
+    }
+
+    document.getElementById("jsonFileInput").addEventListener("change", function(evt) {
+      const file = evt.target.files[0];
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const imported = JSON.parse(e.target.result);
+          for (const [key, value] of Object.entries(imported)) {
+            if (!data[key]) {
+              data[key] = value;
+            } else {
+              Object.assign(data[key], value);
+            }
+          }
+          updateParentSelect();
+          document.getElementById("output").textContent = JSON.stringify(data, null, 2);
+          alert("불러오기 완료!");
+        } catch (err) {
+          alert("JSON 형식 오류: " + err.message);
+        }
+      };
+      reader.readAsText(file);
+    });
+
     fetch("eumun_hanja_data_fixed.json")
       .then(res => res.json())
       .then(json => {
