@@ -3,7 +3,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <title>한자 파생 구조 입력기 (자동 채움 + 불러오기)</title>
+  <title>한자 파생 구조 입력기 (자동 채움 + 검색)</title>
   <style>
     body { font-family: sans-serif; padding: 20px; }
     textarea, input, select { width: 100%; margin: 5px 0 15px; }
@@ -13,7 +13,7 @@
   </style>
 </head>
 <body>
-  <h1>한자 파생 구조 입력기 (자동 채움 + JSON 불러오기)</h1>
+  <h1>한자 파생 구조 입력기 (자동 채움 + 검색)</h1>
 
   <label>한자 코드 (예: 寅)</label>
   <input type="text" id="key" onblur="autofillFromEumun()" />
@@ -72,8 +72,10 @@
   <button onclick="addEntry()">추가</button>
   <button onclick="downloadJSON()">JSON 저장</button>
   <button onclick="triggerImport()">JSON 불러오기</button>
-
   <input type="file" id="jsonFileInput" style="display:none" accept=".json" />
+
+  <h2>자동 검색 링크</h2>
+  <div id="searchLinks" style="margin: 10px 0; padding: 10px; background: #eef; border: 1px solid #ccc;"></div>
 
   <h2>현재 데이터</h2>
   <div id="output">{}</div>
@@ -81,6 +83,42 @@
   <script>
     const data = {};
     const eumunData = {};
+
+    function generateSearchLinks(char) {
+      const encoded = encodeURIComponent(char);
+      const hex = char.codePointAt(0).toString(16).toUpperCase();
+      return `
+        🔗 <a href="https://hanja.dict.naver.com/hanja?q=${encoded}" target="_blank">네이버 한자사전</a><br/>
+        🔗 <a href="https://en.wiktionary.org/wiki/${encoded}" target="_blank">영문 Wiktionary</a><br/>
+        🔗 <a href="https://www.unicode.org/cgi-bin/GetUnihanData.pl?codepoint=${hex}" target="_blank">Unihan Database</a><br/>
+        🔗 <a href="https://xiaoxue.iis.sinica.edu.tw/hanzi/${encoded}" target="_blank">小學堂</a><br/>
+        🔗 <a href="https://ctext.org/dictionary.pl?if=en&char=${encoded}" target="_blank">ctext.org 사전</a><br/>
+        🔗 <a href="#" onclick="openStdDictHanjaSearch('${char}'); return false;">표준국어대사전(한자 포함)</a>
+      `;
+    }
+
+    function openStdDictHanjaSearch(char) {
+      const form = document.createElement("form");
+      form.method = "POST";
+      form.action = "https://stdict.korean.go.kr/search/searchDetailWords.do";
+      form.target = "_blank";
+
+      const target = document.createElement("input");
+      target.type = "hidden";
+      target.name = "searchTargets";
+      target.value = "ORG_LANGUAGE";
+
+      const keyword = document.createElement("input");
+      keyword.type = "hidden";
+      keyword.name = "searchKeywords";
+      keyword.value = char;
+
+      form.appendChild(target);
+      form.appendChild(keyword);
+      document.body.appendChild(form);
+      form.submit();
+      document.body.removeChild(form);
+    }
 
     function autofillFromEumun() {
       const key = document.getElementById("key").value.trim();
@@ -91,6 +129,11 @@
         document.getElementById("extraLabels").value = (info.extra_labels || []).join(" | ");
         document.getElementById("radical").value = info.radical;
         document.getElementById("level").value = info.level;
+      }
+      if (key) {
+        document.getElementById("searchLinks").innerHTML = generateSearchLinks(key);
+      } else {
+        document.getElementById("searchLinks").innerHTML = "";
       }
     }
 
