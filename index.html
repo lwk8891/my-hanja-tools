@@ -102,23 +102,35 @@
       form.method = "POST";
       form.action = "https://stdict.korean.go.kr/search/searchDetailWords.do";
       form.target = "_blank";
-
-      const target = document.createElement("input");
-      target.type = "hidden";
-      target.name = "searchTargets";
-      target.value = "ORG_LANGUAGE";
-
-      const keyword = document.createElement("input");
-      keyword.type = "hidden";
-      keyword.name = "searchKeywords";
-      keyword.value = char;
-
-      form.appendChild(target);
-      form.appendChild(keyword);
+    
+      const addHidden = (name, value) => {
+        const input = document.createElement("input");
+        input.type = "hidden";
+        input.name = name;
+        input.value = value;
+        form.appendChild(input);
+      };
+    
+      addHidden("searchTargets", "ORG_LANGUAGE");    // 원어(한자)
+      addHidden("searchKeywords", char);            // 검색어
+      addHidden("searchConditions", "all");         // 포함 검색
+      addHidden("searchBoxFlag", "Y");
+      addHidden("searchType", "1");                 // 단어
+      addHidden("searchKeywordTo", "3");
+    
+      addHidden("searchWordKind_all", "-1");        // 고유어/한자어 구분 안함
+      addHidden("_searchWordKind_all", "on");
+    
+      addHidden("searchWordKindCode_all", "-1");
+      addHidden("_searchWordKindCode_all", "on");
+    
+      addHidden("pageSize", "10");
+    
       document.body.appendChild(form);
       form.submit();
       document.body.removeChild(form);
     }
+
 
     function autofillFromEumun() {
       const key = document.getElementById("key").value.trim();
